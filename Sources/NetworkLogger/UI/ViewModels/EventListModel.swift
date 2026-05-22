@@ -9,6 +9,7 @@ public final class EventListModel {
     public var searchText: String = ""
     public var statusCodeFilter: StatusCodeRangeFilter?
     public var methodFilter: MethodFilter?
+    public var dateRange: ClosedRange<Date>?
 
     @PerceptionIgnored
     public let logger: NetworkLogger?
@@ -57,11 +58,19 @@ public final class EventListModel {
         Task { await logger.clear() }
     }
 
+    public var parsedSearch: ParsedSearch {
+        SearchTokenParser.parse(searchText)
+    }
+
     public var filtered: [NetworkEvent] {
         var filter: any EventFilter = AlwaysFilter()
         var composites: [any EventFilter] = []
-        if !searchText.isEmpty {
-            composites.append(URLSubstringFilter(searchText))
+        let parsed = parsedSearch
+        for token in parsed.tokens {
+            composites.append(token.filter)
+        }
+        if !parsed.freeText.isEmpty {
+            composites.append(URLSubstringFilter(parsed.freeText))
         }
         if let statusCodeFilter {
             composites.append(statusCodeFilter)
@@ -69,10 +78,21 @@ public final class EventListModel {
         if let methodFilter {
             composites.append(methodFilter)
         }
+        if let dateRange {
+            composites.append(DateRangeFilter(dateRange))
+        }
         if !composites.isEmpty {
             filter = CompositeFilter(composites)
         }
         return events.filter { filter.includes($0) }.sorted { $0.startDate > $1.startDate }
+    }
+
+    /// Removes a parsed token's raw spelling from the search text. The chip UI calls
+    /// this when the user taps the chip's close affordance.
+    public func remove(_ token: SearchToken) {
+        let raw = token.rawSpelling
+        let pieces = searchText.split(whereSeparator: \.isWhitespace).filter { String($0) != raw }
+        searchText = pieces.joined(separator: " ")
     }
 }
 

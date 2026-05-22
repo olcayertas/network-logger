@@ -21,6 +21,7 @@ struct RequestListView: View {
     @State private var showClearConfirmation = false
     @State private var sharePayload: SharePayload?
     @State private var showPinnedOnly = false
+    @State private var showDateRangePicker = false
     @Environment(\.dismiss) private var dismiss
 
     private var visibleEvents: [NetworkEvent] {
@@ -40,6 +41,29 @@ struct RequestListView: View {
                         StatusCodeFilterChip(selected: $model.statusCodeFilter)
                             .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 4, trailing: 8))
                             .listRowBackground(Color.clear)
+                    }
+                }
+
+                if !model.parsedSearch.tokens.isEmpty || model.dateRange != nil {
+                    Section {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(model.parsedSearch.tokens, id: \.self) { token in
+                                    FilterChip(systemImage: token.systemImage, label: token.displayLabel) {
+                                        model.remove(token)
+                                    }
+                                }
+                                if let range = model.dateRange {
+                                    FilterChip(systemImage: "clock", label: Self.formatRange(range)) {
+                                        model.dateRange = nil
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                        }
+                        .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
+                        .listRowBackground(Color.clear)
                     }
                 }
 
@@ -92,6 +116,15 @@ struct RequestListView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Done") { dismiss() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showDateRangePicker = true
+                    } label: {
+                        Image(systemName: model.dateRange == nil ? "clock" : "clock.fill")
+                            .foregroundStyle(model.dateRange == nil ? .secondary : Color.accentColor)
+                    }
+                    .accessibilityLabel("Date range filter")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -150,6 +183,9 @@ struct RequestListView: View {
             .sheet(isPresented: $showStats) {
                 StatsView(events: model.events)
             }
+            .sheet(isPresented: $showDateRangePicker) {
+                DateRangePickerView(range: $model.dateRange)
+            }
             .sheet(item: $sharePayload) { payload in
                 ShareSheet(items: payload.items)
             }
@@ -162,6 +198,45 @@ struct RequestListView: View {
                 Button("Cancel", role: .cancel) {}
             }
         }
+    }
+}
+
+extension RequestListView {
+    fileprivate static func formatRange(_ range: ClosedRange<Date>) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        if Calendar.current.isDate(range.lowerBound, inSameDayAs: range.upperBound),
+           Calendar.current.isDateInToday(range.lowerBound) {
+            return "\(formatter.string(from: range.lowerBound))–\(formatter.string(from: range.upperBound))"
+        }
+        formatter.dateStyle = .short
+        return "\(formatter.string(from: range.lowerBound)) – \(formatter.string(from: range.upperBound))"
+    }
+}
+
+private struct FilterChip: View {
+    let systemImage: String
+    let label: String
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: systemImage)
+                .font(.caption2)
+            Text(label)
+                .font(.caption.weight(.medium))
+                .lineLimit(1)
+            Button(action: onRemove) {
+                Image(systemName: "xmark")
+                    .font(.caption2.weight(.bold))
+            }
+            .buttonStyle(.plain)
+        }
+        .foregroundStyle(Color.accentColor)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color.accentColor.opacity(0.12), in: Capsule())
     }
 }
 
