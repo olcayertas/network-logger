@@ -2,6 +2,7 @@ import Foundation
 
 public final class NetworkLogger: Sendable {
     public let store: EventStore
+    public let logStore: LogEventStore
     public let persistence: PersistenceCoordinator?
     public let recentSearches: RecentSearchesStore
     public let pinnedEvents: PinnedEventsStore
@@ -9,6 +10,7 @@ public final class NetworkLogger: Sendable {
 
     public init(configuration: NetworkLoggerConfiguration = .init()) {
         self.store = EventStore(limit: configuration.limit)
+        self.logStore = LogEventStore(limit: configuration.logLimit)
         switch configuration.persistence {
         case .inMemory:
             self.persistence = nil
@@ -55,6 +57,12 @@ public final class NetworkLogger: Sendable {
 
     public func setDefaultFilter(_ filter: String?) async {
         await configStore.mutate { $0.defaultFilter = filter }
+    }
+
+    /// Records an app-log entry into `logStore`. The optional
+    /// `NetworkLoggerLogHandler` product bridges swift-log into this method.
+    public func log(_ event: LogEvent) async {
+        await logStore.append(event)
     }
 
     public func record(_ event: NetworkEvent) async {

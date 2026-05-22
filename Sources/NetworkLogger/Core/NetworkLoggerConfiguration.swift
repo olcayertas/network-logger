@@ -2,6 +2,7 @@ import Foundation
 
 public struct NetworkLoggerConfiguration: Sendable {
     public var limit: Int
+    public var logLimit: Int
     public var ignoredHosts: [String]
     public var defaultFilter: String?
     public var bodyCaptureLimit: Int
@@ -11,6 +12,7 @@ public struct NetworkLoggerConfiguration: Sendable {
 
     public init(
         limit: Int = 500,
+        logLimit: Int = 1_000,
         ignoredHosts: [String] = [],
         defaultFilter: String? = nil,
         bodyCaptureLimit: Int = 1_048_576,
@@ -19,6 +21,7 @@ public struct NetworkLoggerConfiguration: Sendable {
         responseTransformer: @escaping @Sendable (Data, NetworkRequestSnapshot) -> Data = { data, _ in data }
     ) {
         self.limit = max(1, limit)
+        self.logLimit = max(1, logLimit)
         self.ignoredHosts = ignoredHosts
         self.defaultFilter = defaultFilter
         self.bodyCaptureLimit = max(0, bodyCaptureLimit)
