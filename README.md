@@ -21,10 +21,15 @@ Wormholy is great. NetworkLogger keeps every feature you actually use and drops 
 Swift Package Manager:
 
 ```swift
-.package(url: "https://github.com/your-org/network-logger", from: "0.1.0")
+.package(url: "https://github.com/olcayertas/network-logger", from: "0.1.0")
 ```
 
-Add `NetworkLogger` as a dependency to your target.
+Add one (or both) of the products to your target:
+
+| Product | Pulls in | When to use |
+|---|---|---|
+| `NetworkLogger` | swift-perception | Always — the core library. |
+| `NetworkLoggerDependencies` | the above + swift-dependencies | If you want `@Dependency(\.networkLogger)` everywhere. |
 
 iOS 16+ (uses the [Perception](https://github.com/pointfreeco/swift-perception) library to back-port `@Observable`). The Swift package targets iOS 16 and macOS 13; UI is iOS-only.
 
@@ -143,6 +148,77 @@ TabView { NetworkLoggerView(logger: logger).tabItem { ... } }
 ```
 
 The library ships **no** shake-to-present helper, **no** floating overlay button, and **no** NSNotification trigger. Wire up your own trigger — see `Examples/NetworkLoggerDemo` for several patterns.
+
+## Using with Point-Free's Dependencies (optional)
+
+The optional `NetworkLoggerDependencies` product registers `NetworkLogger` as a [swift-dependencies](https://github.com/pointfreeco/swift-dependencies) value, so you can configure once at app startup and read the configured instance from anywhere with `@Dependency(\.networkLogger)` — no prop drilling, no global singleton.
+
+**Add the product** to your target:
+
+```swift
+.product(name: "NetworkLoggerDependencies", package: "network-logger")
+```
+
+**Configure once** at app startup:
+
+```swift
+import NetworkLogger
+import NetworkLoggerDependencies
+import Dependencies
+import SwiftUI
+
+@main
+struct MyApp: App {
+    init() {
+        prepareDependencies {
+            $0.networkLogger = NetworkLogger(configuration: .init(
+                limit: 500,
+                ignoredHosts: ["analytics.example.com"]
+            ))
+        }
+    }
+
+    var body: some Scene {
+        WindowGroup { ContentView() }
+    }
+}
+```
+
+**Read it anywhere**:
+
+```swift
+struct DebugMenuView: View {
+    @Dependency(\.networkLogger) var logger
+    @State private var showLogs = false
+
+    var body: some View {
+        Button("Network logs") { showLogs = true }
+            .sheet(isPresented: $showLogs) {
+                NetworkLoggerView(logger: logger)
+            }
+    }
+}
+```
+
+Or use the bundled `NetworkLoggerInspector()` view, which pulls the dependency for you:
+
+```swift
+.sheet(isPresented: $showLogs) {
+    NetworkLoggerInspector()
+}
+```
+
+**Override for tests / previews** like any Dependencies-managed value:
+
+```swift
+withDependencies {
+    $0.networkLogger = NetworkLogger()
+} operation: {
+    // ... test or preview code that consumes @Dependency(\.networkLogger)
+}
+```
+
+This module is opt-in. If you don't import `NetworkLoggerDependencies`, swift-dependencies is never pulled into your dependency graph.
 
 ## Configuration
 
