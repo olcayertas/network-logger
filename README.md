@@ -40,14 +40,28 @@ Swift Package Manager:
 .package(url: "https://github.com/olcayertas/network-logger", from: "0.1.0")
 ```
 
-Add one (or both) of the products to your target:
+Add one (or more) of the products to your target:
 
 | Product | Pulls in | When to use |
 |---|---|---|
-| `NetworkLogger` | swift-perception | Always — the core library. |
+| `NetworkLogger` | swift-perception, swift-sharing | Always — core library and minimal UI. |
 | `NetworkLoggerDependencies` | the above + swift-dependencies | If you want `@Dependency(\.networkLogger)` everywhere. |
+| `NetworkLoggerMediaViewers` | the above + WebKit + PDFKit | Inline image / HTML / PDF body previews. |
+| `NetworkLoggerLogHandler` | the above + swift-log | Route swift-log into the Console tab. |
 
 iOS 16+ (uses the [Perception](https://github.com/pointfreeco/swift-perception) library to back-port `@Observable`). The Swift package targets iOS 16 and macOS 13; UI is iOS-only.
+
+## Documentation
+
+The full DocC catalog is published with the package — open it in Xcode via Product → Build Documentation. Key articles:
+
+- **Getting Started** — install, three-line quickstart, exclude from Release.
+- **Capturing network traffic** — delegate proxy, URLProtocol, manual `record(_:)`.
+- **Filtering and searching** — structured tokens, date range, pins, recents.
+- **Persistence and sessions** — file-backed mode via swift-sharing.
+- **Exporting captures** — HAR, Postman, cURL, plain text.
+- **swift-log integration** — Console tab + bootstrap.
+- **JWT viewer** — detect, decode, jwt.io-style display.
 
 ### Excluding from Release builds
 
