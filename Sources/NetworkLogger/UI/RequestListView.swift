@@ -1,16 +1,36 @@
 #if os(iOS)
 import SwiftUI
 import Perception
+import Sharing
 import UIKit
 
 struct RequestListView: View {
     @Perception.Bindable var model: EventListModel
-    let logger: NetworkLogger?
+    let logger: NetworkLogger
+    @SharedReader var pinnedIDs: Set<UUID>
+    @SharedReader var recentSearches: RecentSearches
+
+    init(model: EventListModel, logger: NetworkLogger) {
+        self._model = Perception.Bindable(model)
+        self.logger = logger
+        self._pinnedIDs = SharedReader(logger.pinnedEvents.shared)
+        self._recentSearches = SharedReader(logger.recentSearches.shared)
+    }
 
     @State private var showStats = false
     @State private var showClearConfirmation = false
     @State private var sharePayload: SharePayload?
+    @State private var showPinnedOnly = false
     @Environment(\.dismiss) private var dismiss
+
+    private var visibleEvents: [NetworkEvent] {
+        showPinnedOnly ? model.filtered.filter { pinnedIDs.contains($0.id) } : model.filtered
+    }
+
+    private var emptyMessage: String {
+        if showPinnedOnly { return "No pinned requests yet." }
+        return model.events.isEmpty ? "No requests captured yet." : "No matching requests."
+    }
 
     var body: some View {
         WithPerceptionTracking {
@@ -24,17 +44,29 @@ struct RequestListView: View {
                 }
 
                 Section {
-                    ForEach(model.filtered) { event in
+                    ForEach(visibleEvents) { event in
                         NavigationLink(value: event) {
-                            RequestRow(event: event)
+                            RequestRow(event: event, isPinned: pinnedIDs.contains(event.id))
                                 .padding(.vertical, 6)
+                        }
+                        .swipeActions(edge: .leading) {
+                            Button {
+                                logger.pinnedEvents.togglePin(event.id)
+                            } label: {
+                                if pinnedIDs.contains(event.id) {
+                                    Label("Unpin", systemImage: "pin.slash.fill")
+                                } else {
+                                    Label("Pin", systemImage: "pin.fill")
+                                }
+                            }
+                            .tint(.accentColor)
                         }
                     }
                 }
 
-                if model.filtered.isEmpty {
+                if visibleEvents.isEmpty {
                     Section {
-                        Text(model.events.isEmpty ? "No requests captured yet." : "No matching requests.")
+                        Text(emptyMessage)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -43,12 +75,32 @@ struct RequestListView: View {
             .navigationTitle("Requests")
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $model.searchText, prompt: Text("Filter by URL"))
+            .searchSuggestions {
+                if model.searchText.isEmpty {
+                    ForEach(recentSearches.searches, id: \.self) { term in
+                        Label(term, systemImage: "clock.arrow.circlepath")
+                            .searchCompletion(term)
+                    }
+                }
+            }
+            .onSubmit(of: .search) {
+                logger.recentSearches.record(model.searchText)
+            }
             .navigationDestination(for: NetworkEvent.self) { event in
-                RequestDetailView(model: EventDetailModel(event: event, logger: logger))
+                RequestDetailView(model: EventDetailModel(event: event, logger: model.logger), logger: logger)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Done") { dismiss() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        withAnimation { showPinnedOnly.toggle() }
+                    } label: {
+                        Image(systemName: showPinnedOnly ? "pin.fill" : "pin")
+                            .foregroundStyle(showPinnedOnly ? Color.accentColor : .secondary)
+                    }
+                    .accessibilityLabel(showPinnedOnly ? "Show all" : "Show pinned only")
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
@@ -59,29 +111,29 @@ struct RequestListView: View {
                         }
                         Divider()
                         Button {
-                            sharePayload = .init(events: model.filtered, format: .plainText)
+                            sharePayload = .init(events: visibleEvents, format: .plainText)
                         } label: {
                             Label("Share as text", systemImage: "square.and.arrow.up")
                         }
-                        .disabled(model.filtered.isEmpty)
+                        .disabled(visibleEvents.isEmpty)
                         Button {
-                            sharePayload = .init(events: model.filtered, format: .curl)
+                            sharePayload = .init(events: visibleEvents, format: .curl)
                         } label: {
                             Label("Share as cURL", systemImage: "terminal")
                         }
-                        .disabled(model.filtered.isEmpty)
+                        .disabled(visibleEvents.isEmpty)
                         Button {
-                            sharePayload = .init(events: model.filtered, format: .postman)
+                            sharePayload = .init(events: visibleEvents, format: .postman)
                         } label: {
                             Label("Share as Postman", systemImage: "shippingbox")
                         }
-                        .disabled(model.filtered.isEmpty)
+                        .disabled(visibleEvents.isEmpty)
                         Button {
-                            sharePayload = .init(events: model.filtered, format: .har)
+                            sharePayload = .init(events: visibleEvents, format: .har)
                         } label: {
                             Label("Share as HAR", systemImage: "doc.text")
                         }
-                        .disabled(model.filtered.isEmpty)
+                        .disabled(visibleEvents.isEmpty)
                         if !model.isReadOnly {
                             Divider()
                             Button(role: .destructive) {

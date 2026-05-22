@@ -3,15 +3,23 @@ import SwiftUI
 
 struct RequestRow: View {
     let event: NetworkEvent
+    var isPinned: Bool = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             statusBadge
             VStack(alignment: .leading, spacing: 4) {
-                Text(event.request.url.absoluteString)
-                    .font(.system(.subheadline, design: .monospaced))
-                    .lineLimit(2)
-                    .truncationMode(.middle)
+                HStack(spacing: 6) {
+                    if isPinned {
+                        Image(systemName: "pin.fill")
+                            .font(.caption2)
+                            .foregroundStyle(Color.accentColor)
+                    }
+                    Text(event.request.url.absoluteString)
+                        .font(.system(.subheadline, design: .monospaced))
+                        .lineLimit(2)
+                        .truncationMode(.middle)
+                }
                 HStack(spacing: 8) {
                     Text(event.request.httpMethod)
                         .font(.caption.weight(.semibold))

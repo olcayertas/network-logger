@@ -2,11 +2,20 @@
 import SwiftUI
 import UIKit
 import Perception
+import Sharing
 
 struct RequestDetailView: View {
     @Perception.Bindable var model: EventDetailModel
+    let logger: NetworkLogger
+    @SharedReader var pinnedIDs: Set<UUID>
     @State private var sharePayload: SharePayload?
     @State private var showCopiedAlert = false
+
+    init(model: EventDetailModel, logger: NetworkLogger) {
+        self._model = Perception.Bindable(model)
+        self.logger = logger
+        self._pinnedIDs = SharedReader(logger.pinnedEvents.shared)
+    }
 
     var body: some View {
         WithPerceptionTracking {
@@ -68,6 +77,15 @@ struct RequestDetailView: View {
                 model.stop()
             }
             .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        logger.pinnedEvents.togglePin(event.id)
+                    } label: {
+                        Image(systemName: pinnedIDs.contains(event.id) ? "pin.fill" : "pin")
+                            .foregroundStyle(pinnedIDs.contains(event.id) ? Color.accentColor : .secondary)
+                    }
+                    .accessibilityLabel(pinnedIDs.contains(event.id) ? "Unpin" : "Pin")
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
                         Button {

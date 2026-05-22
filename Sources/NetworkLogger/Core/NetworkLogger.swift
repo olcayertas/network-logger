@@ -3,6 +3,8 @@ import Foundation
 public final class NetworkLogger: Sendable {
     public let store: EventStore
     public let persistence: PersistenceCoordinator?
+    public let recentSearches: RecentSearchesStore
+    public let pinnedEvents: PinnedEventsStore
     private let configStore: ConfigurationStore
 
     public init(configuration: NetworkLoggerConfiguration = .init()) {
@@ -17,6 +19,9 @@ public final class NetworkLogger: Sendable {
                 maxAgeDays: maxAgeDays
             )
         }
+        let prefsDir = configuration.persistence.preferencesDirectory
+        self.recentSearches = RecentSearchesStore(directory: prefsDir)
+        self.pinnedEvents = PinnedEventsStore(directory: prefsDir)
         self.configStore = ConfigurationStore(configuration)
         if let persistence {
             Task { [store, persistence] in

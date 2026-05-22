@@ -40,13 +40,31 @@ public struct NetworkLoggerConfiguration: Sendable {
 
         /// Default file-backed config writing under Application Support.
         public static var fileBackedDefault: Persistence {
+            .fileBacked(directory: Self.defaultBaseDirectory)
+        }
+
+        /// Where UI preferences (recent searches, pinned ids) live on disk.
+        ///
+        /// For `.fileBacked`, this is the same directory the event envelope is written
+        /// into. For `.inMemory`, a default location under Application Support is used
+        /// so prefs still survive launches.
+        var preferencesDirectory: URL {
+            switch self {
+            case .inMemory:
+                return Self.defaultBaseDirectory
+            case let .fileBacked(directory, _, _):
+                return directory
+            }
+        }
+
+        private static var defaultBaseDirectory: URL {
             let base = (try? FileManager.default.url(
                 for: .applicationSupportDirectory,
                 in: .userDomainMask,
                 appropriateFor: nil,
                 create: true
             )) ?? FileManager.default.temporaryDirectory
-            return .fileBacked(directory: base.appendingPathComponent("NetworkLogger", isDirectory: true))
+            return base.appendingPathComponent("NetworkLogger", isDirectory: true)
         }
     }
 

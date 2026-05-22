@@ -118,7 +118,7 @@ private struct PastSessionListView: View {
     var body: some View {
         Group {
             if let model {
-                RequestListView(model: model, logger: nil)
+                RequestListView(model: model, logger: logger)
             } else {
                 ProgressView()
                     .task {
