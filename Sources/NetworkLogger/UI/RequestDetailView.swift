@@ -35,7 +35,7 @@ struct RequestDetailView: View {
                 Section("Request Body") {
                     if let body = event.request.body, !body.data.isEmpty {
                         NavigationLink("View body (\(body.byteCount) bytes)") {
-                            BodyDetailView(payload: body, title: "Request Body")
+                            BodyDetailView(payload: body, title: "Request Body", mimeType: event.request.headers["Content-Type"] ?? event.request.headers["content-type"])
                         }
                     } else {
                         Text("No body").foregroundStyle(.secondary)
@@ -49,7 +49,7 @@ struct RequestDetailView: View {
                 Section("Response Body") {
                     if let body = event.response?.body, !body.data.isEmpty {
                         NavigationLink("View body (\(body.byteCount) bytes)") {
-                            BodyDetailView(payload: body, title: "Response Body")
+                            BodyDetailView(payload: body, title: "Response Body", mimeType: event.response?.mimeType)
                         }
                     } else {
                         Text("No body").foregroundStyle(.secondary)

@@ -4,12 +4,14 @@ import Perception
 
 public struct NetworkLoggerView: View {
     let logger: NetworkLogger
+    let bodyViewers: [any BodyViewer]
     @State private var listModel: EventListModel?
     @State private var settings = AppearanceSettings.shared
     @State private var showAppearanceSheet = false
 
-    public init(logger: NetworkLogger) {
+    public init(logger: NetworkLogger, bodyViewers: [any BodyViewer] = []) {
         self.logger = logger
+        self.bodyViewers = bodyViewers
     }
 
     public var body: some View {
@@ -33,6 +35,7 @@ public struct NetworkLoggerView: View {
             .tint(settings.accent.color)
             .preferredColorScheme(settings.colorScheme.swiftUI)
             .environment(\.networkLoggerAppearance, settings)
+            .environment(\.bodyViewers, bodyViewers)
         }
     }
 
