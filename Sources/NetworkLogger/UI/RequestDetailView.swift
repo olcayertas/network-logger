@@ -189,17 +189,8 @@ private struct HeadersSection: View {
         }
     }
 
-    /// Prefer the pre-decoded JWT captured before redaction; fall back to live-parsing
-    /// the visible header value (so consumers without redaction still get a badge).
     private func jwtForHeader(key: String, value: String?) -> JWT? {
-        if let cached = decodedJWTs[key.lowercased()] {
-            return cached
-        }
-        guard let value else { return nil }
-        if key.lowercased() == "authorization" || key.lowercased() == "proxy-authorization" {
-            return JWTDetector.jwtFromAuthorizationHeader(value)
-        }
-        return JWTDetector.firstJWT(in: value)
+        HeaderJWTResolver.jwt(forHeader: key, value: value, decoded: decodedJWTs)
     }
 }
 
