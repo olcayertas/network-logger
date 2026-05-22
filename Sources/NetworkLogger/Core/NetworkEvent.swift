@@ -1,7 +1,7 @@
 import Foundation
 
-public struct NetworkEvent: Sendable, Identifiable, Equatable, Hashable {
-    public enum State: String, Sendable, Equatable {
+public struct NetworkEvent: Sendable, Identifiable, Equatable, Hashable, Codable {
+    public enum State: String, Sendable, Equatable, Codable {
         case inFlight
         case completed
         case failed

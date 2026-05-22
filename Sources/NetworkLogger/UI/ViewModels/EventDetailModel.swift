@@ -8,21 +8,22 @@ public final class EventDetailModel {
     public private(set) var event: NetworkEvent
 
     @PerceptionIgnored
-    private let logger: NetworkLogger
+    public let logger: NetworkLogger?
 
     @PerceptionIgnored
     private var streamTask: Task<Void, Never>?
 
-    public init(event: NetworkEvent, logger: NetworkLogger) {
+    public init(event: NetworkEvent, logger: NetworkLogger?) {
         self.event = event
         self.logger = logger
     }
 
     public func start() {
+        guard let logger else { return }
         streamTask?.cancel()
         let id = event.id
         streamTask = Task { [weak self] in
-            guard let stream = await self?.logger.eventStream() else { return }
+            let stream = await logger.eventStream()
             for await snapshot in stream {
                 guard let self else { break }
                 if let updated = snapshot.first(where: { $0.id == id }) {

@@ -2,12 +2,33 @@ import Foundation
 
 public final class NetworkLogger: Sendable {
     public let store: EventStore
+    public let persistence: PersistenceCoordinator?
     private let configStore: ConfigurationStore
 
     public init(configuration: NetworkLoggerConfiguration = .init()) {
         self.store = EventStore(limit: configuration.limit)
+        switch configuration.persistence {
+        case .inMemory:
+            self.persistence = nil
+        case let .fileBacked(directory, maxSessions, maxAgeDays):
+            self.persistence = PersistenceCoordinator(
+                directory: directory,
+                maxSessions: maxSessions,
+                maxAgeDays: maxAgeDays
+            )
+        }
         self.configStore = ConfigurationStore(configuration)
+        if let persistence {
+            Task { [store, persistence] in
+                let initial = await store.snapshot()
+                for event in initial { persistence.record(event) }
+            }
+        }
     }
+
+    /// The id of the session whose events are flowing through this logger right now.
+    /// `nil` when persistence is disabled.
+    public var currentSessionID: UUID? { persistence?.currentSessionID }
 
     public func configuration() async -> NetworkLoggerConfiguration {
         await configStore.current
@@ -36,10 +57,12 @@ public final class NetworkLogger: Sendable {
         guard !config.shouldIgnore(host: event.request.host) else { return }
         let sanitized = sanitize(event, with: config)
         await store.upsert(sanitized)
+        persistence?.record(sanitized)
     }
 
     public func clear() async {
         await store.clear()
+        persistence?.clearCurrent()
     }
 
     public func snapshot() async -> [NetworkEvent] {

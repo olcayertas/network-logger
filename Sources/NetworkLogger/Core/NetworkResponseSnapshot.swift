@@ -1,6 +1,6 @@
 import Foundation
 
-public struct NetworkResponseSnapshot: Sendable, Equatable, Hashable {
+public struct NetworkResponseSnapshot: Sendable, Equatable, Hashable, Codable {
     public var statusCode: Int
     public var headers: [String: String]
     public var body: BodyData?

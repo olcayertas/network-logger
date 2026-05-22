@@ -1,6 +1,6 @@
 import Foundation
 
-public struct BodyData: Sendable, Equatable, Hashable {
+public struct BodyData: Sendable, Equatable, Hashable, Codable {
     public let data: Data
     public let originalSize: Int64
     public let truncated: Bool

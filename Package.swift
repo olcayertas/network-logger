@@ -11,12 +11,14 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/pointfreeco/swift-perception", from: "1.3.0"),
         .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.0.0"),
+        .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.8.0"),
     ],
     targets: [
         .target(
             name: "NetworkLogger",
             dependencies: [
                 .product(name: "Perception", package: "swift-perception"),
+                .product(name: "Sharing", package: "swift-sharing"),
             ]
         ),
         .target(

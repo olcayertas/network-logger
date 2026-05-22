@@ -6,7 +6,8 @@ struct DemoApp: App {
     @State private var logger: NetworkLogger = {
         let logger = NetworkLogger(configuration: .init(
             limit: 200,
-            ignoredHosts: ["analytics.example.com"]
+            ignoredHosts: ["analytics.example.com"],
+            persistence: .fileBackedDefault
         ))
         return logger
     }()

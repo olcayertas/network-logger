@@ -1,6 +1,6 @@
 import Foundation
 
-public struct NetworkRequestSnapshot: Sendable, Equatable, Hashable {
+public struct NetworkRequestSnapshot: Sendable, Equatable, Hashable, Codable {
     public let url: URL
     public let httpMethod: String
     public let headers: [String: String]
@@ -31,7 +31,7 @@ public extension NetworkRequestSnapshot {
     var scheme: String? { url.scheme }
 }
 
-public struct HTTPCookieSnapshot: Sendable, Equatable, Hashable {
+public struct HTTPCookieSnapshot: Sendable, Equatable, Hashable, Codable {
     public let name: String
     public let value: String
     public let domain: String?

@@ -5,7 +5,7 @@ import UIKit
 
 struct RequestListView: View {
     @Perception.Bindable var model: EventListModel
-    let logger: NetworkLogger
+    let logger: NetworkLogger?
 
     @State private var showStats = false
     @State private var showClearConfirmation = false
@@ -82,11 +82,13 @@ struct RequestListView: View {
                             Label("Share as HAR", systemImage: "doc.text")
                         }
                         .disabled(model.filtered.isEmpty)
-                        Divider()
-                        Button(role: .destructive) {
-                            showClearConfirmation = true
-                        } label: {
-                            Label("Clear", systemImage: "trash")
+                        if !model.isReadOnly {
+                            Divider()
+                            Button(role: .destructive) {
+                                showClearConfirmation = true
+                            } label: {
+                                Label("Clear", systemImage: "trash")
+                            }
                         }
                     } label: {
                         Label("More", systemImage: "ellipsis.circle")

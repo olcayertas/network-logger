@@ -1,6 +1,6 @@
 import Foundation
 
-public struct NetworkError: Sendable, Equatable, Hashable, Error {
+public struct NetworkError: Sendable, Equatable, Hashable, Error, Codable {
     public let code: Int
     public let domain: String
     public let message: String

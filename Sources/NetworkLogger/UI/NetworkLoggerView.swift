@@ -15,35 +15,40 @@ public struct NetworkLoggerView: View {
     public var body: some View {
         WithPerceptionTracking {
             NavigationStack {
-                Group {
-                    if let listModel {
-                        RequestListView(model: listModel, logger: logger)
-                    } else {
-                        ProgressView()
-                            .task {
-                                let model = EventListModel(logger: logger)
-                                model.start()
-                                listModel = model
+                content
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button {
+                                showAppearanceSheet = true
+                            } label: {
+                                Image(systemName: "slider.horizontal.3")
                             }
-                    }
-                }
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            showAppearanceSheet = true
-                        } label: {
-                            Image(systemName: "slider.horizontal.3")
+                            .accessibilityLabel("Appearance")
                         }
-                        .accessibilityLabel("Appearance")
                     }
-                }
-                .sheet(isPresented: $showAppearanceSheet) {
-                    AppearanceSettingsView(settings: settings)
-                }
+                    .sheet(isPresented: $showAppearanceSheet) {
+                        AppearanceSettingsView(settings: settings)
+                    }
             }
             .tint(settings.accent.color)
             .preferredColorScheme(settings.colorScheme.swiftUI)
             .environment(\.networkLoggerAppearance, settings)
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if logger.persistence != nil {
+            SessionListView(logger: logger)
+        } else if let listModel {
+            RequestListView(model: listModel, logger: logger)
+        } else {
+            ProgressView()
+                .task {
+                    let model = EventListModel(logger: logger)
+                    model.start()
+                    listModel = model
+                }
         }
     }
 }

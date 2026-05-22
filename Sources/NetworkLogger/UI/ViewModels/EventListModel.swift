@@ -11,7 +11,7 @@ public final class EventListModel {
     public var methodFilter: MethodFilter?
 
     @PerceptionIgnored
-    private let logger: NetworkLogger
+    public let logger: NetworkLogger?
 
     @PerceptionIgnored
     private var streamTask: Task<Void, Never>?
@@ -20,10 +20,19 @@ public final class EventListModel {
         self.logger = logger
     }
 
+    /// Read-only init for browsing a past, persisted session.
+    public init(snapshot: [NetworkEvent]) {
+        self.logger = nil
+        self.events = snapshot
+    }
+
+    public var isReadOnly: Bool { logger == nil }
+
     public func start() {
+        guard let logger else { return }
         streamTask?.cancel()
         streamTask = Task { [weak self] in
-            guard let stream = await self?.logger.eventStream() else { return }
+            let stream = await logger.eventStream()
             for await snapshot in stream {
                 guard let self else { break }
                 self.events = snapshot
@@ -31,7 +40,7 @@ public final class EventListModel {
         }
         Task { [weak self] in
             guard let self else { return }
-            let config = await self.logger.configuration()
+            let config = await logger.configuration()
             if self.searchText.isEmpty, let defaultFilter = config.defaultFilter {
                 self.searchText = defaultFilter
             }
@@ -44,9 +53,8 @@ public final class EventListModel {
     }
 
     public func clear() {
-        Task { [weak self] in
-            await self?.logger.clear()
-        }
+        guard let logger else { return }
+        Task { await logger.clear() }
     }
 
     public var filtered: [NetworkEvent] {

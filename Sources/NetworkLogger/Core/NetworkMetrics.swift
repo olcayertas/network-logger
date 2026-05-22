@@ -1,6 +1,6 @@
 import Foundation
 
-public struct NetworkMetrics: Sendable, Equatable, Hashable {
+public struct NetworkMetrics: Sendable, Equatable, Hashable, Codable {
     public var duration: TimeInterval?
     public var requestStartDate: Date?
     public var requestEndDate: Date?
