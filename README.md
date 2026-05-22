@@ -149,6 +149,42 @@ TabView { NetworkLoggerView(logger: logger).tabItem { ... } }
 
 The library ships **no** shake-to-present helper, **no** floating overlay button, and **no** NSNotification trigger. Wire up your own trigger — see `Examples/NetworkLoggerDemo` for several patterns.
 
+## Customizing the UI
+
+`NetworkLoggerView` carries a slider icon in its leading nav-bar position. Tap it to open the **Appearance** sheet — settings persist to `UserDefaults` so they survive across launches.
+
+| Setting | What it does |
+|---|---|
+| **Color scheme** | Forces `System` / `Light` / `Dark` on the inspector independent of the host app, via `.preferredColorScheme(...)` at the root. |
+| **Accent** | Picks the inspector's tint (Blue / Indigo / Purple / Teal / Green / Orange / Pink). Applied via `.tint(...)` so the host app's accent doesn't bleed into chips and buttons. |
+| **Body font size** | Slider 9 – 22 pt (default 12 pt). Live preview in the sheet. Applied to the request and response body screens. |
+| **Reset to defaults** | One-tap restore. |
+
+### Programmatic access
+
+`AppearanceSettings.shared` is the singleton the UI reads from. You can pre-seed it at app startup (e.g. to force dark mode on internal builds):
+
+```swift
+import NetworkLogger
+
+AppearanceSettings.shared.colorScheme = .dark
+AppearanceSettings.shared.accent = .indigo
+AppearanceSettings.shared.bodyFontSize = 11
+```
+
+### Syntax highlighting
+
+Pretty-printed JSON bodies are token-coloured (keys, strings, numbers, booleans, `null`, punctuation) in both the request and response body views. Two palettes ship out of the box and are picked automatically based on the active color scheme:
+
+```swift
+SyntaxTheme.lightDefault    // Xcode-ish, tuned for paper-white surfaces
+SyntaxTheme.darkDefault     // higher saturation, tuned for dark surfaces
+```
+
+Build a custom palette with the `SyntaxTheme(key:string:number:boolean:null:punctuation:)` initialiser. Non-JSON bodies (XML, plain text, binary placeholders) skip the highlighter and render unstyled — the scanner never throws on malformed input.
+
+Search highlighting (yellow background from the search field) composes on top of syntax colours, so finding text inside a coloured body does not erase the syntax run for the rest of the response.
+
 ## Using with Point-Free's Dependencies (optional)
 
 The optional `NetworkLoggerDependencies` product registers `NetworkLogger` as a [swift-dependencies](https://github.com/pointfreeco/swift-dependencies) value, so you can configure once at app startup and read the configured instance from anywhere with `@Dependency(\.networkLogger)` — no prop drilling, no global singleton.

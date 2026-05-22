@@ -13,6 +13,7 @@ xcuserdata/
 .DS_Store
 .idea/
 .vscode/
+.serena/
 
 # Resolved package versions are tracked at the app layer, not the library.
 # Uncomment if you want to track exact versions in this repo:
