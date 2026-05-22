@@ -7,6 +7,7 @@ let package = Package(
     products: [
         .library(name: "NetworkLogger", targets: ["NetworkLogger"]),
         .library(name: "NetworkLoggerDependencies", targets: ["NetworkLoggerDependencies"]),
+        .library(name: "NetworkLoggerMediaViewers", targets: ["NetworkLoggerMediaViewers"]),
     ],
     dependencies: [
         .package(url: "https://github.com/pointfreeco/swift-perception", from: "1.3.0"),
@@ -27,6 +28,10 @@ let package = Package(
                 "NetworkLogger",
                 .product(name: "Dependencies", package: "swift-dependencies"),
             ]
+        ),
+        .target(
+            name: "NetworkLoggerMediaViewers",
+            dependencies: ["NetworkLogger"]
         ),
         .testTarget(
             name: "NetworkLoggerTests",

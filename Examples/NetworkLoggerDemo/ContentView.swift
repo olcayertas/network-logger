@@ -1,5 +1,6 @@
 import SwiftUI
 import NetworkLogger
+import NetworkLoggerMediaViewers
 
 struct ContentView: View {
     let logger: NetworkLogger
@@ -20,7 +21,7 @@ struct ContentView: View {
                 Section("Present the logger") {
                     Button("Show as sheet") { showLoggerSheet = true }
                     NavigationLink("Push as navigation") {
-                        NetworkLoggerView(logger: logger)
+                        NetworkLoggerView(logger: logger, bodyViewers: MediaBodyViewers.all)
                     }
                 }
 
@@ -35,7 +36,7 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $showLoggerSheet) {
-                NetworkLoggerView(logger: logger)
+                NetworkLoggerView(logger: logger, bodyViewers: MediaBodyViewers.all)
             }
         }
     }

@@ -1,5 +1,6 @@
 import SwiftUI
 import NetworkLogger
+import NetworkLoggerMediaViewers
 
 @main
 struct DemoApp: App {
