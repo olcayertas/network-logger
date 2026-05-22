@@ -8,13 +8,20 @@ public struct NetworkRequestSnapshot: Sendable, Equatable, Hashable, Codable {
     public let credentials: [String: String]
     public let cookies: [HTTPCookieSnapshot]
 
+    /// Decoded JWTs keyed by lowercased header name. Populated by `NetworkLogger`
+    /// during sanitization, **before** `headerRedactor` runs, so the UI can render a
+    /// jwt.io-style badge even when the raw header value has been redacted to
+    /// `•••redacted•••`.
+    public let decodedJWTs: [String: JWT]
+
     public init(
         url: URL,
         httpMethod: String,
         headers: [String: String] = [:],
         body: BodyData? = nil,
         credentials: [String: String] = [:],
-        cookies: [HTTPCookieSnapshot] = []
+        cookies: [HTTPCookieSnapshot] = [],
+        decodedJWTs: [String: JWT] = [:]
     ) {
         self.url = url
         self.httpMethod = httpMethod
@@ -22,6 +29,7 @@ public struct NetworkRequestSnapshot: Sendable, Equatable, Hashable, Codable {
         self.body = body
         self.credentials = credentials
         self.cookies = cookies
+        self.decodedJWTs = decodedJWTs
     }
 }
 

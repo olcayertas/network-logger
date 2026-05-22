@@ -120,15 +120,18 @@ public final class NetworkLogger: Sendable {
 
     func sanitize(_ event: NetworkEvent, with config: NetworkLoggerConfiguration) -> NetworkEvent {
         var copy = event
+        let requestJWTs = Self.decodeJWTs(in: copy.request.headers)
         copy.request = NetworkRequestSnapshot(
             url: copy.request.url,
             httpMethod: copy.request.httpMethod,
             headers: config.headerRedactor(copy.request.headers),
             body: copy.request.body,
             credentials: copy.request.credentials,
-            cookies: copy.request.cookies
+            cookies: copy.request.cookies,
+            decodedJWTs: requestJWTs
         )
         if var response = copy.response {
+            let responseJWTs = Self.decodeJWTs(in: response.headers)
             let redactedHeaders = config.headerRedactor(response.headers)
             let transformedBody: BodyData? = response.body.map { body in
                 BodyData(
@@ -143,10 +146,32 @@ public final class NetworkLogger: Sendable {
                 headers: redactedHeaders,
                 body: transformedBody,
                 mimeType: response.mimeType,
-                textEncodingName: response.textEncodingName
+                textEncodingName: response.textEncodingName,
+                decodedJWTs: responseJWTs
             )
             copy.response = response
         }
         return copy
+    }
+
+    /// Scans header values for embedded JWTs (recognising the `Bearer ` prefix on
+    /// Authorization-style headers) and returns a mapping keyed by lowercased header
+    /// name. Called BEFORE `headerRedactor` so the decoded structure is preserved even
+    /// when the raw header value is redacted.
+    static func decodeJWTs(in headers: [String: String]) -> [String: JWT] {
+        var result: [String: JWT] = [:]
+        for (key, value) in headers {
+            let lower = key.lowercased()
+            let jwt: JWT?
+            if lower == "authorization" || lower == "proxy-authorization" {
+                jwt = JWTDetector.jwtFromAuthorizationHeader(value)
+            } else {
+                jwt = JWTDetector.firstJWT(in: value)
+            }
+            if let jwt {
+                result[lower] = jwt
+            }
+        }
+        return result
     }
 }

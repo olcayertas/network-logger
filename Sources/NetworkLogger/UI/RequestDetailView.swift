@@ -29,7 +29,7 @@ struct RequestDetailView: View {
                 }
 
                 Section("Request Headers") {
-                    HeadersSection(headers: event.request.headers)
+                    HeadersSection(headers: event.request.headers, decodedJWTs: event.request.decodedJWTs)
                 }
 
                 Section("Request Body") {
@@ -43,7 +43,7 @@ struct RequestDetailView: View {
                 }
 
                 Section("Response Headers") {
-                    HeadersSection(headers: event.response?.headers ?? [:])
+                    HeadersSection(headers: event.response?.headers ?? [:], decodedJWTs: event.response?.decodedJWTs ?? [:])
                 }
 
                 Section("Response Body") {
@@ -156,6 +156,7 @@ private struct OverviewSection: View {
 
 private struct HeadersSection: View {
     let headers: [String: String]
+    var decodedJWTs: [String: JWT] = [:]
 
     var body: some View {
         if headers.isEmpty {
@@ -168,9 +169,9 @@ private struct HeadersSection: View {
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
                             .frame(width: 130, alignment: .leading)
-                        if let value = headers[key], let jwt = jwtIfAuthorization(key: key, value: value) {
+                        if let jwt = jwtForHeader(key: key, value: headers[key]) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(value)
+                                Text(headers[key] ?? "")
                                     .font(.caption)
                                     .lineLimit(2)
                                     .truncationMode(.middle)
@@ -188,9 +189,17 @@ private struct HeadersSection: View {
         }
     }
 
-    private func jwtIfAuthorization(key: String, value: String) -> JWT? {
-        guard key.lowercased() == "authorization" else { return nil }
-        return JWTDetector.jwtFromAuthorizationHeader(value)
+    /// Prefer the pre-decoded JWT captured before redaction; fall back to live-parsing
+    /// the visible header value (so consumers without redaction still get a badge).
+    private func jwtForHeader(key: String, value: String?) -> JWT? {
+        if let cached = decodedJWTs[key.lowercased()] {
+            return cached
+        }
+        guard let value else { return nil }
+        if key.lowercased() == "authorization" || key.lowercased() == "proxy-authorization" {
+            return JWTDetector.jwtFromAuthorizationHeader(value)
+        }
+        return JWTDetector.firstJWT(in: value)
     }
 }
 

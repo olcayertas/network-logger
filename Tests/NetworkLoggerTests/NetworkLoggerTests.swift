@@ -37,6 +37,51 @@ struct NetworkLoggerFacadeTests {
         #expect(stored?.request.headers["Accept"] == "application/json")
     }
 
+    @Test("JWT is decoded before redaction runs")
+    func jwtDecodedBeforeRedaction() async {
+        // header={"alg":"HS256","typ":"JWT"} payload={"sub":"alice","exp":1516239322}
+        let token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" +
+            ".eyJzdWIiOiJhbGljZSIsImV4cCI6MTUxNjIzOTMyMn0.sig"
+        let logger = NetworkLogger()
+        let event = makeEvent(
+            url: "https://api.example.com/a",
+            requestHeaders: ["Authorization": "Bearer \(token)"]
+        )
+        await logger.record(event)
+        let stored = await logger.snapshot().first
+        // Raw value is redacted as before…
+        #expect(stored?.request.headers["Authorization"] == "•••redacted•••")
+        // …but the decoded JWT is preserved under the lowercased header name.
+        #expect(stored?.request.decodedJWTs["authorization"]?.claims.sub == "alice")
+    }
+
+    @Test("response Authorization JWT decoded before redaction")
+    func responseJWTDecoded() async {
+        let token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJib2IifQ.sig"
+        let logger = NetworkLogger()
+        var event = makeEvent(url: "https://api.example.com/a")
+        event.response = NetworkResponseSnapshot(
+            statusCode: 200,
+            headers: ["Authorization": "Bearer \(token)"]
+        )
+        await logger.record(event)
+        let stored = await logger.snapshot().first
+        #expect(stored?.response?.headers["Authorization"] == "•••redacted•••")
+        #expect(stored?.response?.decodedJWTs["authorization"]?.claims.sub == "bob")
+    }
+
+    @Test("non-JWT header values produce no decoded entry")
+    func nonJWTHeaderProducesNothing() async {
+        let logger = NetworkLogger()
+        let event = makeEvent(
+            url: "https://api.example.com/a",
+            requestHeaders: ["X-Request-ID": "abc-123"]
+        )
+        await logger.record(event)
+        let stored = await logger.snapshot().first
+        #expect(stored?.request.decodedJWTs.isEmpty == true)
+    }
+
     @Test("response transformer rewrites body")
     func responseTransformerRuns() async {
         let logger = NetworkLogger(

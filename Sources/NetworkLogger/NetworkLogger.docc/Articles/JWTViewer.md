@@ -14,6 +14,12 @@ NetworkLogger scans `Authorization: Bearer …` headers and JSON body strings fo
 
 `JWTDetector.jwtFromAuthorizationHeader(_:)` strips a leading `Bearer ` (case-insensitive) and parses the rest.
 
+### Extraction runs before redaction
+
+The default `headerRedactor` replaces the `Authorization`, `Cookie`, `Set-Cookie`, and `Proxy-Authorization` values with `•••redacted•••` before the event is stored. To make the badge still work in that very common case, `NetworkLogger` decodes JWTs from the **raw** headers *before* the redactor runs, and stores the result in `NetworkRequestSnapshot.decodedJWTs` / `NetworkResponseSnapshot.decodedJWTs` (keyed by lowercased header name).
+
+The detail view then renders the badge from `decodedJWTs` first, falling back to live-parsing the visible value. So you see the jwt.io-style decode even when the raw token has been redacted out of the captured headers.
+
 ## What's surfaced
 
 The detail view shows:

@@ -4,7 +4,7 @@ import Foundation
 /// verification** is performed (we don't have the key material, and signature checking
 /// is outside the scope of a debugging viewer). The validity banner is informational
 /// only and reflects only `exp` / `nbf` time-window checks.
-public struct JWT: Sendable, Equatable {
+public struct JWT: Sendable, Equatable, Hashable, Codable {
     public let headerPrettyJSON: String
     public let payloadPrettyJSON: String
     public let signature: Data
@@ -37,7 +37,7 @@ public struct JWT: Sendable, Equatable {
     }
 
     /// Standard claims extracted from the decoded header & payload.
-    public struct Claims: Sendable, Equatable {
+    public struct Claims: Sendable, Equatable, Hashable, Codable {
         public let alg: String?
         public let typ: String?
         public let kid: String?
@@ -72,7 +72,7 @@ public struct JWT: Sendable, Equatable {
         }
     }
 
-    public enum ValidityStatus: Sendable, Equatable {
+    public enum ValidityStatus: Sendable, Equatable, Hashable, Codable {
         case valid
         case expired(since: Date)
         case notYetValid(until: Date)
