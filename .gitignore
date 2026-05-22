@@ -1,0 +1,19 @@
+# Build artifacts
+.build/
+.swiftpm/
+DerivedData/
+
+# Xcode user state
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+xcuserdata/
+*.xcuserstate
+
+# macOS / IDE noise
+.DS_Store
+.idea/
+.vscode/
+
+# Resolved package versions are tracked at the app layer, not the library.
+# Uncomment if you want to track exact versions in this repo:
+# !Package.resolved
