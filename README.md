@@ -37,7 +37,7 @@ Wormholy is great. NetworkLogger keeps every feature you actually use and drops 
 Swift Package Manager:
 
 ```swift
-.package(url: "https://github.com/olcayertas/network-logger", from: "0.1.0")
+.package(url: "https://github.com/olcayertas/network-logger", from: "0.5.0")
 ```
 
 Add one (or more) of the products to your target:

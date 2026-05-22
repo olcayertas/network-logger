@@ -7,7 +7,7 @@ Install NetworkLogger, capture your first request, and open the inspector.
 Add NetworkLogger to your project's `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/olcayertas/network-logger", from: "0.2.0")
+.package(url: "https://github.com/olcayertas/network-logger", from: "0.5.0")
 ```
 
 Then add one or more of the products to your target:
