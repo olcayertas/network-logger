@@ -168,13 +168,29 @@ private struct HeadersSection: View {
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
                             .frame(width: 130, alignment: .leading)
-                        Text(headers[key] ?? "")
-                            .font(.caption)
-                            .textSelection(.enabled)
+                        if let value = headers[key], let jwt = jwtIfAuthorization(key: key, value: value) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(value)
+                                    .font(.caption)
+                                    .lineLimit(2)
+                                    .truncationMode(.middle)
+                                    .textSelection(.enabled)
+                                JWTBadgeView(jwt: jwt)
+                            }
+                        } else {
+                            Text(headers[key] ?? "")
+                                .font(.caption)
+                                .textSelection(.enabled)
+                        }
                     }
                 }
             }
         }
+    }
+
+    private func jwtIfAuthorization(key: String, value: String) -> JWT? {
+        guard key.lowercased() == "authorization" else { return nil }
+        return JWTDetector.jwtFromAuthorizationHeader(value)
     }
 }
 
