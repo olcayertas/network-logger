@@ -1,8 +1,24 @@
 # NetworkLogger
 
+[![Release](https://img.shields.io/github/v/release/olcayertas/network-logger?display_name=tag&sort=semver&color=brightgreen)](https://github.com/olcayertas/network-logger/releases/latest)
+[![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg?logo=swift)](https://swift.org)
+[![Platforms](https://img.shields.io/badge/platforms-iOS%2016%20%7C%20macOS%2013-lightgrey.svg)](https://swift.org)
+[![SPM](https://img.shields.io/badge/SwiftPM-compatible-brightgreen.svg)](https://swift.org/package-manager/)
+[![License](https://img.shields.io/github/license/olcayertas/network-logger?color=blue)](LICENSE)
+
 A modern Swift network-debugging library for iOS — a from-scratch rewrite of [Wormholy](https://github.com/pmusolino/Wormholy) using SwiftUI, Swift 6 strict concurrency, actors, and `URLSession` delegate proxying.
 
 It captures HTTP requests, responses, headers, bodies, and metrics; lets you filter, share, and export as cURL / Postman / HAR / plain text; and lives behind a `NetworkLoggerView` that **you** present wherever you want.
+
+## Screenshots
+
+| Request list | Request detail | Response body |
+|:-:|:-:|:-:|
+| ![Request list with status-code chip filters](screenshots/request-list.png) | ![Request detail with headers and body summary](screenshots/request-detail.png) | ![Syntax-highlighted JSON response body](screenshots/response-body.png) |
+
+| Appearance | Share / export |
+|:-:|:-:|
+| ![Appearance sheet — color scheme, accent, body font size](screenshots/appearance-settings.png) | ![Share menu — text, cURL, Postman, HAR](screenshots/share-menu.png) |
 
 ## Why a rewrite
 
@@ -54,11 +70,9 @@ let logger = NetworkLogger(configuration: .init(
     ignoredHosts: ["analytics.example.com"]
 ))
 
-// 2. Attach to a URLSession via the delegate proxy (recommended).
-//    Pass your existing delegate as `forwardingTo:` to keep your auth /
-//    redirect / progress logic — we forward everything through.
-let delegate = await logger.makeSessionDelegate(forwardingTo: myDelegate)
-let session = URLSession(configuration: .default, delegate: delegate, delegateQueue: nil)
+// 2. Build a pre-wired session and route requests through it.
+let session = logger.makeLoggingURLSession()
+let (data, response) = try await session.data(for: request)
 
 // 3. Present the inspector wherever you want.
 .sheet(isPresented: $showInspector) {
@@ -66,11 +80,36 @@ let session = URLSession(configuration: .default, delegate: delegate, delegateQu
 }
 ```
 
+`makeLoggingURLSession()` is the shortest path — one line, full body / header / metrics capture, cancellation forwarded. If you need to keep your own `URLSession` (custom configuration, your own delegate, etc.) use the manual delegate-proxy path described under **Recording modes** below.
+
 ## Recording modes
 
 Three complementary ways to feed events into a logger. Pick one or combine them.
 
-### 1. URLSession delegate proxy (recommended)
+### 1. `LoggingURLSession` (recommended)
+
+```swift
+let session = logger.makeLoggingURLSession()
+let (data, response) = try await session.data(for: request)
+```
+
+`makeLoggingURLSession()` returns a `LoggingURLSession` actor that:
+
+- Owns a `URLSession` whose delegate is `LoggingURLSessionDelegate` (full callback forwarding).
+- Drives requests via `dataTask(with:).resume()` + a `CheckedContinuation` glue (`TaskResultSink`) so the data-delegate callbacks fire reliably — even on iOS 26, where `URLSession.data(for:delegate:)` no longer delivers `URLSessionDataDelegate` events to the per-task delegate.
+- Forwards Swift `Task` cancellation to the underlying `URLSessionDataTask`.
+- Bounds memory with a configurable `bodyCaptureLimit` (1 MiB default).
+
+Captures everything the inspector needs: request body, response body + headers, metrics, redirects, auth challenges.
+
+### 1b. Manual delegate proxy (advanced)
+
+If you already have a custom `URLSession` (your own configuration, pinned transport, existing delegate) and want to keep it, install the logger as a forwardee on your own delegate:
+
+```swift
+let delegate = await logger.makeSessionDelegate(forwardingTo: myDelegate)
+let session = URLSession(configuration: .default, delegate: delegate, delegateQueue: nil)
+```
 
 `logger.makeSessionDelegate(forwardingTo:)` returns a `URLSessionDelegate` that records every callback then forwards to your real delegate via Objective-C message forwarding (`responds(to:)` + `forwardingTarget(for:)`). Works with:
 
@@ -80,17 +119,7 @@ Three complementary ways to feed events into a logger. Pick one or combine them.
 - Multipart bodies (combined with `BodyStreamTee`)
 - `URLSessionStreamDelegate` / `URLSessionWebSocketDelegate` — forwarded without any code from us
 
-Limitation: the URLSession **async/await convenience APIs** (`session.data(from:)`, `session.data(for:)` without a per-task delegate) consume the data delegate methods internally, so the session delegate only sees `task` and `auth` events. To capture full request and response bodies via the async API, pass the same delegate as the per-task delegate:
-
-```swift
-let delegate = await logger.makeSessionDelegate()
-let session = URLSession(configuration: .default, delegate: delegate, delegateQueue: nil)
-
-// Pass the delegate as the per-task delegate too — captures everything:
-let (data, response) = try await session.data(from: url, delegate: delegate)
-```
-
-Or just call `session.dataTask(with: request).resume()` (delegate-driven, no completion handler) and rely on the session delegate alone.
+Limitation: the URLSession **async/await convenience APIs** (`session.data(from:)`, `session.data(for:)` without a per-task delegate) consume the data delegate methods internally on iOS 26, so the session delegate only sees `task` and `auth` events. Use `dataTask(with:).resume()` + a delegate-driven completion, or just use `makeLoggingURLSession()` which already does this for you.
 
 ### 2. Manual recording
 
